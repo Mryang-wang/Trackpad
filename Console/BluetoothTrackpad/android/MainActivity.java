@@ -29,13 +29,22 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
+
+import java.util.Locale;
 
 public final class MainActivity extends Activity implements BleLink.Listener {
     private static final int BLUETOOTH_PERMISSIONS = 1;
     private static final String SAVED_CODE = "savedCode";
     private static final String AUTO_CONNECT = "autoConnect";
+    private static final String POINTER_SPEED = "pointerSpeedPercent";
+    private static final int MIN_POINTER_SPEED = 50, MAX_POINTER_SPEED = 300, DEFAULT_POINTER_SPEED = 180;
+    private static final float ORIGINAL_POINTER_GAIN = 1.65f;
     private SharedPreferences preferences;
+    private int pointerSpeedPercent;
+    private float pointerGain;
     private BleLink link;
     private TouchSurface touch;
     private TextView landing;
@@ -51,6 +60,9 @@ public final class MainActivity extends Activity implements BleLink.Listener {
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences("trackpad", MODE_PRIVATE);
+        pointerSpeedPercent = Math.max(MIN_POINTER_SPEED, Math.min(MAX_POINTER_SPEED,
+                preferences.getInt(POINTER_SPEED, DEFAULT_POINTER_SPEED)));
+        pointerGain = ORIGINAL_POINTER_GAIN * (pointerSpeedPercent / 100f);
         createLayout();
         BluetoothManager bluetooth = getSystemService(BluetoothManager.class);
         if (bluetooth == null || bluetooth.getAdapter() == null) {
@@ -163,7 +175,7 @@ public final class MainActivity extends Activity implements BleLink.Listener {
         }
         new AlertDialog.Builder(this)
                 .setTitle("Trackpad")
-                .setItems(new String[] {"Mac 控制台", "蓝牙设置"}, (dialog, choice) -> {
+                .setItems(new String[] {"Mac 控制台", "触控板设置"}, (dialog, choice) -> {
                     if (choice == 0 && ready && console == null) {
                         touch.resetGesture();
                         console = new ConsolePanel(this, link, () -> console = null);
@@ -193,9 +205,39 @@ public final class MainActivity extends Activity implements BleLink.Listener {
         settingsCode.setText(requestedCode != null ? requestedCode : draftCode);
         content.addView(settingsCode);
 
+        TextView speedLabel = new TextView(this);
+        speedLabel.setTextSize(16);
+        speedLabel.setPadding(0, dp(12), 0, dp(4));
+        speedLabel.setText(pointerSpeedLabel());
+        content.addView(speedLabel);
+
+        SeekBar speed = new SeekBar(this);
+        speed.setMax((MAX_POINTER_SPEED - MIN_POINTER_SPEED) / 10);
+        speed.setProgress((pointerSpeedPercent - MIN_POINTER_SPEED) / 10);
+        speed.setContentDescription("指针速度");
+        content.addView(speed, new LinearLayout.LayoutParams(-1, dp(48)));
+        speed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                pointerSpeedPercent = MIN_POINTER_SPEED + progress * 10;
+                pointerGain = ORIGINAL_POINTER_GAIN * (pointerSpeedPercent / 100f);
+                preferences.edit().putInt(POINTER_SPEED, pointerSpeedPercent).apply();
+                speedLabel.setText(pointerSpeedLabel());
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+
+        Button originalSpeed = new Button(this);
+        originalSpeed.setText("恢复原速度（1.0×）");
+        originalSpeed.setOnClickListener(view -> speed.setProgress((100 - MIN_POINTER_SPEED) / 10));
+        content.addView(originalSpeed);
+
+        ScrollView scroller = new ScrollView(this);
+        scroller.setFillViewport(true);
+        scroller.addView(content);
         settings = new AlertDialog.Builder(this)
-                .setTitle("蓝牙触控板设置")
-                .setView(content)
+                .setTitle("触控板设置")
+                .setView(scroller)
                 .setNegativeButton("关闭", null)
                 .setPositiveButton("连接", null)
                 .create();
@@ -212,6 +254,10 @@ public final class MainActivity extends Activity implements BleLink.Listener {
             settingsStatus = null;
         });
         settings.show();
+    }
+
+    private String pointerSpeedLabel() {
+        return String.format(Locale.ROOT, "指针速度  %.1f×", pointerSpeedPercent / 100f);
     }
 
     private void refreshSettings() {
@@ -362,11 +408,11 @@ public final class MainActivity extends Activity implements BleLink.Listener {
                     return true;
                 case MotionEvent.ACTION_MOVE:
                     if (fingers == ONE && event.getPointerCount() == 1) {
-                        move(TrackpadProtocol.MOVE, event.getX(), event.getY(), 1.65f);
+                        move(TrackpadProtocol.MOVE, event.getX(), event.getY(), pointerGain);
                     } else if (fingers == TWO && event.getPointerCount() == 2) {
                         move(TrackpadProtocol.SCROLL, centerX(event), centerY(event), 1.2f);
                     } else if (fingers == THREE && event.getPointerCount() == 3) {
-                        move(TrackpadProtocol.DRAG, centerX(event), centerY(event), 1.65f);
+                        move(TrackpadProtocol.DRAG, centerX(event), centerY(event), pointerGain);
                     } else if (fingers == FOUR && event.getPointerCount() == 4) {
                         float dx = centerX(event) - lastX;
                         float dy = centerY(event) - lastY;

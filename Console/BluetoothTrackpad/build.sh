@@ -44,7 +44,7 @@ javac -encoding UTF-8 --release 8 -Xlint:all -classpath "$platform_jar" -d "$wor
 jar cf "$classes" -C "$work/classes" .
 "$android_tools/d8" --lib "$platform_jar" --min-api 23 --output "$work" "$classes"
 "$android_tools/aapt2" link -I "$platform_jar" --manifest "$source_root/android/AndroidManifest.xml" \
-    --version-code 10 --version-name 0.3.6 -o "$work/unsigned.apk"
+    --version-code 11 --version-name 0.3.7 -o "$work/unsigned.apk"
 zip -q -0 -j "$work/unsigned.apk" "$work/classes.dex"
 "$android_tools/zipalign" -f 4 "$work/unsigned.apk" "$work/aligned.apk"
 
@@ -53,7 +53,7 @@ if [[ ! -f "$key" ]]; then
     keytool -genkeypair -keystore "$key" -storepass android -keypass android \
         -alias trackpad-test -dname "CN=Local Trackpad Test" -keyalg RSA -keysize 2048 -validity 3650
 fi
-apk="$output/Trackpad-Console-0.3.6.apk"
+apk="$output/Trackpad-Console-0.3.7.apk"
 "$android_tools/apksigner" sign --ks "$key" --ks-pass pass:android --key-pass pass:android --out "$apk" "$work/aligned.apk"
 "$android_tools/apksigner" verify --verbose "$apk"
 printf 'APK: %s\n' "$apk"
