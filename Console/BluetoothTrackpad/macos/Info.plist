@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key><string>TrackpadHost</string>
+    <key>CFBundleIdentifier</key><string>local.trackpad.console.host</string>
+    <key>CFBundleName</key><string>Trackpad 控制台接收端</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.4.2</string>
+    <key>CFBundleVersion</key><string>11</string>
+    <key>LSMinimumSystemVersion</key><string>13.0</string>
+    <key>NSBluetoothAlwaysUsageDescription</key><string>通过蓝牙接收你手机发来的触控板操作。</string>
+    <key>LSUIElement</key><true/>
+    <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>

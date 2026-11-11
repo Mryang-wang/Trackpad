@@ -1,0 +1,25 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Generated builds, SDKs and temporary verification files
+**/Build/
+**/build/
+**/.work/
+**/.gradle/
+*.app/
+*.log
+
+# Local signing identities and credentials
+**/SigningIdentity.sha1
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.keychain
+*.keychain-db
+.env
+.env.*
+!.env.example
